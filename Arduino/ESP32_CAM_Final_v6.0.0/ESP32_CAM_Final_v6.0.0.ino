@@ -80,14 +80,14 @@
 const char* ssid_primary = "EsDehidrasiHouse";
 const char* password_primary = "11011011";
 
-const char* ssid_backup1 = "EsDehidrasi";
-const char* password_backup1 = "11011011";
+const char* ssid_backup1 = "ICT-LAB WORKSPACE";
+const char* password_backup1 = "ICTLAB2024";
 
 const char* ssid_backup2 = "ICT-LAB WORKSPACE";
 const char* password_backup2 = "ICTLAB2024";
 
 // WiFi retry configuration
-const int WIFI_RETRY_DELAY = 500;   // 500ms per retry
+const int WIFI_RETRY_DELAY = 1000;   // 500ms per retry
 const int WIFI_MAX_RETRY = 10;      // Max 10 retry per WiFi (5 detik)
 
 // ============================================================================
