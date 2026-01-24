@@ -95,8 +95,8 @@ const char* mqtt_topic_camera_ip = "smartTrain/camera/ip";
 #define OLED_SCL          32  // OLED I2C SCL
 
 // Servo positions
-const int BARRIER_UP = 90;    // Palang naik (0-180)
-const int BARRIER_DOWN = 0;   // Palang turun
+const int BARRIER_UP = 180;    // Palang naik
+const int BARRIER_DOWN = 90;   // Palang turun
 
 // ============================================================================
 // OBJECTS & VARIABLES
@@ -120,8 +120,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // State variables
 bool barrierDown = false;      // Status palang (true=turun, false=naik)
 bool servosAttached = false;   // Status servo (attached/detached)
-bool cameraActive = true;     // Status relay kamera
-String esp32camIP = "Waiting...";  // IP ESP32-CAM
+bool cameraActive = false;     // Status relay kamera (default OFF dulu, biar di setup bisa ON pada saat startup)
+String esp32camIP = "Offline";  // IP ESP32-CAM (default offline karena camera belum ON)
 String controllerIP = "";      // IP Controller
 
 // Anti-loop protection
@@ -284,9 +284,19 @@ void setCameraRelay(bool on) {
     Serial.print("📷 Camera relay: ");
     Serial.println(on ? "ON (powered)" : "OFF (powered down)");
     
+    // Update IP status dan publish ke MQTT
+    String ipToPublish;
     if (!on) {
-        esp32camIP = "Offline";  // Reset IP saat kamera mati
+        esp32camIP = "Offline";  // Kamera mati
+        ipToPublish = "Offline";
+    } else {
+        esp32camIP = "waiting...";  // Kamera nyala, tunggu IP
+        ipToPublish = "waiting...";
     }
+    
+    // Publish IP status ke MQTT
+    mqttClient.publish(mqtt_topic_camera_ip, ipToPublish.c_str(), true);
+    Serial.printf("📡 Published Camera IP: %s\n", ipToPublish.c_str());
 }
 
 // ============================================================================
@@ -307,32 +317,39 @@ void moveBarrierSmooth(int targetPosition, int stepDelay = 50, int stepSize = 1,
     else {
         currentPosition = BARRIER_UP;
     }
+    int relativePos = 0;  // Posisi relatif untuk buzzer
     
-    // Move UP (increase angle)
+    // Move UP (increase angle) Terbuka
     if (targetPosition > currentPosition) {
         for (int pos = currentPosition; pos <= targetPosition; pos += stepSize) {
-            barrierServo1.write(pos);  // ← Servo1 gerak
-            barrierServo2.write(pos);  // ← Servo2 gerak BERSAMAAN
-            if (pos % 10 == 0){
+            barrierServo1.write(pos);  // Servo1 gerak
+            barrierServo2.write(pos);  // Servo2 gerak BERSAMAAN
+
+            // Buzzer pakai posisi RELATIF
+            if (relativePos % 10 == 0){
                 digitalWrite(BUZZER_PIN, LOW);
             }
-            if (pos % 20 == 0){
+            if (relativePos % 20 == 0){
                 digitalWrite(BUZZER_PIN, HIGH);
             }
+            relativePos++;
             delay(stepDelay);
         }
     }
-    // Move DOWN (decrease angle)
+    // Move DOWN (decrease angle) Tertutup
     else if (targetPosition < currentPosition) {
         for (int pos = currentPosition; pos >= targetPosition; pos -= stepSize) {
             barrierServo1.write(pos);  // ← Servo1 gerak
             barrierServo2.write(pos);  // ← Servo2 gerak BERSAMA
-            if (pos % 10 == 0){
-                digitalWrite(BUZZER_PIN, HIGH);
-            }
-            if (pos % 20 == 0){
+
+            // Buzzer pakai posisi RELATIF
+            if (relativePos % 10 == 0){
                 digitalWrite(BUZZER_PIN, LOW);
             }
+            if (relativePos % 20 == 0){
+                digitalWrite(BUZZER_PIN, HIGH);
+            }
+            relativePos++;
             delay(stepDelay);
         }
     }
@@ -449,14 +466,27 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     // Topic: smartTrain/camera/ip (Terima IP dari ESP32-CAM)
     // ========================================================================
     else if (strcmp(topic, mqtt_topic_camera_ip) == 0) {
+        // Anti-loop: Ignore message "offline" atau "waiting..." dari device lain
+        if (message.indexOf("offline") >= 0 || message.indexOf("waiting") >= 0) {
+            return;  // Ignore status message
+        }
+        
         // Parse JSON: {"ip":"192.168.1.100"}
         int startIdx = message.indexOf("\"ip\":\"") + 6;
         int endIdx = message.indexOf("\"", startIdx);
         
         if (startIdx > 5 && endIdx > startIdx) {
-            esp32camIP = message.substring(startIdx, endIdx);
-            Serial.print("📷 ESP32-CAM IP updated: ");
-            Serial.println(esp32camIP);
+            String receivedIP = message.substring(startIdx, endIdx);
+            
+            // Hanya update jika kamera sedang aktif
+            if (cameraActive) {
+                esp32camIP = receivedIP;
+                Serial.print("📷 ESP32-CAM IP updated: ");
+                Serial.println(esp32camIP);
+                
+                // Publish IP yang baru dapat
+                mqttClient.publish(mqtt_topic_camera_ip, esp32camIP.c_str(), true);
+            }
         }
     }
     
@@ -681,6 +711,20 @@ void setup() {
 
     detachServos();
     Serial.println("✅ Servo test complete!\n");
+    
+    // Nyalakan kamera setelah delay 3 detik
+    Serial.println("⏳ Waiting 3 seconds before starting camera...");
+    delay(3000);
+    
+    Serial.println("📷 Starting camera...");
+    setCameraRelay(true);  // Ini sudah auto publish IP "waiting..." ke MQTT
+    
+    // Publish status kamera Aktif
+    String statusMsg = "{\"status\":\"Aktif\"}";
+    mqttClient.publish(mqtt_topic_camera, statusMsg.c_str(), true);
+    
+    Serial.println("✅ Camera started! Waiting for IP address...\n");
+    updateOLED();
 }
 
 // ============================================================================

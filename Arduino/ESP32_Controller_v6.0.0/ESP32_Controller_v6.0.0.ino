@@ -95,8 +95,8 @@ const char* mqtt_topic_camera_ip = "smartTrain/camera/ip";
 #define OLED_SCL          32  // OLED I2C SCL
 
 // Servo positions
-const int BARRIER_UP = 90;    // Palang naik (0-180)
-const int BARRIER_DOWN = 0;   // Palang turun
+const int BARRIER_UP = 180;    // Palang naik (0-180)
+const int BARRIER_DOWN = 90;   // Palang turun
 
 // ============================================================================
 // OBJECTS & VARIABLES
