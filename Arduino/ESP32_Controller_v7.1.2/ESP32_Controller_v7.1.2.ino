@@ -284,19 +284,19 @@ void setCameraRelay(bool on) {
     Serial.print("📷 Camera relay: ");
     Serial.println(on ? "ON (powered)" : "OFF (powered down)");
     
-    // Update IP status dan publish ke MQTT
-    String ipToPublish;
+    // Update IP status dan publish ke MQTT (JSON format)
+    String ipMsg;
     if (!on) {
-        esp32camIP = "Offline";  // Kamera mati
-        ipToPublish = "Offline";
+        esp32camIP = "offline";
+        ipMsg = "{\"ip\":\"offline\"}";  // JSON format
     } else {
-        esp32camIP = "waiting...";  // Kamera nyala, tunggu IP
-        ipToPublish = "waiting...";
+        esp32camIP = "waiting...";
+        ipMsg = "{\"ip\":\"waiting...\"}";  // JSON format
     }
     
     // Publish IP status ke MQTT
-    mqttClient.publish(mqtt_topic_camera_ip, ipToPublish.c_str(), true);
-    Serial.printf("📡 Published Camera IP: %s\n", ipToPublish.c_str());
+    mqttClient.publish(mqtt_topic_camera_ip, ipMsg.c_str(), true);
+    Serial.printf("📡 Published Camera IP: %s\n", ipMsg.c_str());
 }
 
 // ============================================================================
@@ -466,26 +466,24 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     // Topic: smartTrain/camera/ip (Terima IP dari ESP32-CAM)
     // ========================================================================
     else if (strcmp(topic, mqtt_topic_camera_ip) == 0) {
-        // Anti-loop: Ignore message "offline" atau "waiting..." dari device lain
-        if (message.indexOf("offline") >= 0 || message.indexOf("waiting") >= 0) {
-            return;  // Ignore status message
-        }
-        
-        // Parse JSON: {"ip":"192.168.1.100"}
+        // Parse JSON: {"ip":"192.168.1.100"} atau {"ip":"offline"} atau {"ip":"waiting..."}
         int startIdx = message.indexOf("\"ip\":\"") + 6;
         int endIdx = message.indexOf("\"", startIdx);
         
         if (startIdx > 5 && endIdx > startIdx) {
             String receivedIP = message.substring(startIdx, endIdx);
             
-            // Hanya update jika kamera sedang aktif
+            // Anti-loop: Ignore message "offline" atau "waiting..." 
+            // (kemungkinan dari controller sendiri)
+            if (receivedIP == "offline" || receivedIP == "waiting...") {
+                return;  // Ignore status message
+            }
+            
+            // Hanya update jika kamera sedang aktif dan IP valid
             if (cameraActive) {
                 esp32camIP = receivedIP;
                 Serial.print("📷 ESP32-CAM IP updated: ");
                 Serial.println(esp32camIP);
-                
-                // Publish IP yang baru dapat
-                mqttClient.publish(mqtt_topic_camera_ip, esp32camIP.c_str(), true);
             }
         }
     }
