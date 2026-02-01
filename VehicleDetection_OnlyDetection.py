@@ -24,22 +24,22 @@ class VehicleDetector:
         self.bus_detected_count = 0
         self.car_detected_count = 0
         
-        print(f"✅ Vehicle Detector Initialized")
-        print(f"📷 ESP32-CAM: {esp32_cam_ip}")
-        print(f"🤖 Model loaded: {model_path}")
+        print(f"Vehicle Detector Initialized")
+        print(f"ESP32-CAM: {esp32_cam_ip}")
+        print(f"Model loaded: {model_path}")
     
     def test_camera_connection(self):
         """Test ESP32-CAM connection"""
         try:
             response = requests.get(self.capture_url, timeout=5)
             if response.status_code == 200:
-                print(f"✅ ESP32-CAM connected: {self.esp32_cam_ip}")
+                print(f"ESP32-CAM connected: {self.esp32_cam_ip}")
                 return True
             else:
-                print(f"❌ ESP32-CAM responded with status: {response.status_code}")
+                print(f"ESP32-CAM responded with status: {response.status_code}")
                 return False
         except Exception as e:
-            print(f"❌ ESP32-CAM not reachable: {e}")
+            print(f"ESP32-CAM not reachable: {e}")
             return False
     
     def capture_frame(self):
@@ -147,7 +147,7 @@ class VehicleDetector:
     def run_detection(self):
         """Main detection loop"""
         print("\n" + "="*60)
-        print("🚀 Starting Vehicle Detection")
+        print("Starting Vehicle Detection")
         print("="*60)
         print("Controls:")
         print("  - Press 'q' to quit")
@@ -221,19 +221,19 @@ class VehicleDetector:
                     timestamp = int(time.time())
                     filename = f"detection_{timestamp}.jpg"
                     cv2.imwrite(filename, annotated_frame)
-                    print(f"📸 Screenshot saved: {filename}")
+                    print(f"Screenshot saved: {filename}")
                     
                 elif key == ord('r'):
                     # Reset counters
                     self.total_frames = 0
                     self.bus_detected_count = 0
                     self.car_detected_count = 0
-                    print("🔄 Counters reset")
+                    print("Counters reset")
                 
                 time.sleep(0.05)  # ~20 FPS
                 
         except KeyboardInterrupt:
-            print("\n⏹️ Detection interrupted by user")
+            print("\nDetection interrupted by user")
         
         finally:
             # Cleanup
@@ -241,7 +241,7 @@ class VehicleDetector:
             
             # Print final statistics
             print("\n" + "="*60)
-            print("📊 Detection Summary")
+            print("Detection Summary")
             print("="*60)
             print(f"Total Frames Processed: {self.total_frames}")
             print(f"Bus Detections: {self.bus_detected_count}")
@@ -256,7 +256,7 @@ def main():
     
     # Verify model exists
     if not os.path.exists(MODEL_PATH):
-        print(f"❌ Model file not found: {MODEL_PATH}")
+        print(f"Model file not found: {MODEL_PATH}")
         print("Please provide the correct path to your YOLO model")
         return
     
@@ -265,7 +265,7 @@ def main():
     
     # Test camera connection
     if not detector.test_camera_connection():
-        print("\n⚠️ Cannot connect to ESP32-CAM")
+        print("\nCannot connect to ESP32-CAM")
         print(f"Please check:")
         print(f"  1. ESP32-CAM is powered on")
         print(f"  2. IP address is correct: {ESP32_CAM_IP}")

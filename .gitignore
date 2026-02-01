@@ -22,3 +22,5 @@ pretrained_yolo/
 Thumbs.db
 .vscode/
 *.swp
+
+unused/

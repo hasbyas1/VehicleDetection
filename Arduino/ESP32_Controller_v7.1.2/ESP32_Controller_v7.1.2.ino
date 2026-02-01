@@ -2,7 +2,7 @@
  * ============================================================================
  * SMART TRAIN LEVEL CROSSING SYSTEM - ESP32 CONTROLLER
  * ============================================================================
- * Version: 2.0 Final
+ * Version: 7.1.2 Final
  * Device: ESP32 DevKit v1 (38-pin)
  * 
  * HARDWARE:
@@ -12,25 +12,25 @@
  * - 1x OLED Display 128x64 I2C (SH1106 atau SSD1306)
  * 
  * PIN CONFIGURATION:
- * ────────────────────────────────────────────────────────────────────────────
- * GPIO 25  →  Servo 1 Signal (Palang kiri)
- * GPIO 26  →  Servo 2 Signal (Palang kanan)
- * GPIO 14  →  Buzzer + (Active buzzer)
- * GPIO 27  →  Relay IN (Power control ESP32-CAM)
- * GPIO 33  →  OLED SDA (I2C Data)
- * GPIO 32  →  OLED SCL (I2C Clock)
- * 5V       →  Servo VCC, Relay VCC, OLED VCC
- * GND      →  Common Ground
- * ────────────────────────────────────────────────────────────────────────────
+ * ============================================================================
+ * GPIO 25  >  Servo 1 Signal (Palang kiri)
+ * GPIO 26  >  Servo 2 Signal (Palang kanan)
+ * GPIO 14  >  Buzzer + (Active buzzer)
+ * GPIO 27  >  Relay IN (Power control ESP32-CAM)
+ * GPIO 33  >  OLED SDA (I2C Data)
+ * GPIO 32  >  OLED SCL (I2C Clock)
+ * 5V       >  Servo VCC, Relay VCC, OLED VCC
+ * GND      >  Common Ground
+ * ============================================================================
  * 
  * RELAY WIRING (PENTING!):
- * ────────────────────────────────────────────────────────────────────────────
- * Relay VCC  →  5V (ESP32)
- * Relay GND  →  GND (ESP32)
- * Relay IN   →  GPIO 27 (ESP32)
- * Relay COM  →  5V Power Supply (+)
- * Relay NO   →  ESP32-CAM 5V Pin
- * ────────────────────────────────────────────────────────────────────────────
+ * ============================================================================
+ * Relay VCC  >  5V (ESP32)
+ * Relay GND  >  GND (ESP32)
+ * Relay IN   >  GPIO 27 (ESP32)
+ * Relay COM  >  5V Power Supply (+)
+ * Relay NO   >  ESP32-CAM 5V Pin
+ * ============================================================================
  * 
  * MQTT TOPICS:
  * - smartTrain/barrier      (SUB & PUB) - Kontrol palang
@@ -180,13 +180,13 @@ void initOLED() {
     
     // Untuk SH1106
     // if (!display.begin(0x3C, true)) {
-    //     Serial.println("❌ OLED initialization failed!");
+    //     Serial.println("OLED initialization failed!");
     //     return;
     // }
     
     // Untuk SSD1306, gunakan:
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-        Serial.println("❌ OLED initialization failed!");
+        Serial.println("OLED initialization failed!");
         return;
     }
     
@@ -201,7 +201,7 @@ void initOLED() {
     display.println("Initializing...");
     display.display();
     
-    Serial.println("✅ OLED initialized");
+    Serial.println("OLED initialized");
 }
 
 void updateOLED() {
@@ -259,7 +259,7 @@ void soundBuzzer() {
 
 void attachServos() {
     if (!servosAttached) {
-        Serial.println("⚙️  Attaching servos...");
+        Serial.println("Attaching servos...");
         barrierServo1.attach(SERVO_PIN_1);
         barrierServo2.attach(SERVO_PIN_2);
         servosAttached = true;
@@ -269,7 +269,7 @@ void attachServos() {
 
 void detachServos() {
     if (servosAttached) {
-        Serial.println("💤 Detaching servos (power save)...");
+        Serial.println("Detaching servos (power save)...");
         barrierServo1.detach();
         barrierServo2.detach();
         servosAttached = false;
@@ -281,7 +281,7 @@ void setCameraRelay(bool on) {
     digitalWrite(RELAY_CAM_PIN, on ? LOW : HIGH);
     cameraActive = on;
     
-    Serial.print("📷 Camera relay: ");
+    Serial.print("Camera relay: ");
     Serial.println(on ? "ON (powered)" : "OFF (powered down)");
     
     // Update IP status dan publish ke MQTT (JSON format)
@@ -296,7 +296,7 @@ void setCameraRelay(bool on) {
     
     // Publish IP status ke MQTT
     mqttClient.publish(mqtt_topic_camera_ip, ipMsg.c_str(), true);
-    Serial.printf("📡 Published Camera IP: %s\n", ipMsg.c_str());
+    Serial.printf("Published Camera IP: %s\n", ipMsg.c_str());
 }
 
 // ============================================================================
@@ -339,8 +339,8 @@ void moveBarrierSmooth(int targetPosition, int stepDelay = 50, int stepSize = 1,
     // Move DOWN (decrease angle) Tertutup
     else if (targetPosition < currentPosition) {
         for (int pos = currentPosition; pos >= targetPosition; pos -= stepSize) {
-            barrierServo1.write(pos);  // ← Servo1 gerak
-            barrierServo2.write(pos);  // ← Servo2 gerak BERSAMA
+            barrierServo1.write(pos);  // Servo1 gerak
+            barrierServo2.write(pos);  // Servo2 gerak BERSAMA
 
             // Buzzer pakai posisi RELATIF
             if (relativePos % 10 == 0){
@@ -369,7 +369,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         message += (char)payload[i];
     }
     
-    Serial.print("📨 MQTT [");
+    Serial.print("MQTT [");
     Serial.print(topic);
     Serial.print("]: ");
     Serial.println(message);
@@ -381,13 +381,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         // Anti-loop: debounce & duplicate check
         if ((millis() - lastBarrierTime < 2000) || 
             (message == lastBarrierMsg && millis() - lastBarrierTime < 5000)) {
-            Serial.println("⚠️  Barrier command ignored (anti-loop protection)");
+            Serial.println("Barrier command ignored (anti-loop protection)");
             return;
         }
         
         // Command: Tertutup (Close barrier)
         if (message.indexOf("Tertutup") >= 0) {
-            Serial.println("🚧 Closing barrier...");
+            Serial.println("Closing barrier...");
             attachServos();
             soundBuzzer();
             
@@ -399,14 +399,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
             
             // Publish status
             // mqttClient.publish(mqtt_topic_barrier, "{\"status\":\"Tertutup\"}");
-            Serial.println("✅ Barrier DOWN");
+            Serial.println("Barrier DOWN");
             
             lastBarrierTime = millis();
             lastBarrierMsg = message;
         }
         // Command: Terbuka (Open barrier)
         else if (message.indexOf("Terbuka") >= 0) {
-            Serial.println("🚧 Opening barrier...");
+            Serial.println("Opening barrier...");
             attachServos();
             soundBuzzer();
             
@@ -418,7 +418,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
             
             // Publish status
             // mqttClient.publish(mqtt_topic_barrier, "{\"status\":\"Terbuka\"}");
-            Serial.println("✅ Barrier UP");
+            Serial.println("Barrier UP");
             
             lastBarrierTime = millis();
             lastBarrierMsg = message;
@@ -432,30 +432,30 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
         // Anti-loop: debounce & duplicate check
         if ((millis() - lastCameraTime < 2000) || 
             (message == lastCameraMsg && millis() - lastCameraTime < 5000)) {
-            Serial.println("⚠️  Camera command ignored (anti-loop protection)");
+            Serial.println("Camera command ignored (anti-loop protection)");
             return;
         }
         
         // Command: Aktif (Turn ON camera)
         if (message.indexOf("Aktif") >= 0) {
-            Serial.println("📷 Turning ON camera...");
+            Serial.println("Turning ON camera...");
             setCameraRelay(true);
             
             // Publish status
             // mqttClient.publish(mqtt_topic_camera, "{\"status\":\"Aktif\"}");
-            Serial.println("✅ Camera ON (waiting for boot ~5s)");
+            Serial.println("Camera ON (waiting for boot ~5s)");
             
             lastCameraTime = millis();
             lastCameraMsg = message;
         }
         // Command: Nonaktif (Turn OFF camera)
         else if (message.indexOf("Nonaktif") >= 0) {
-            Serial.println("📷 Turning OFF camera...");
+            Serial.println("Turning OFF camera...");
             setCameraRelay(false);
             
             // Publish status
             // mqttClient.publish(mqtt_topic_camera, "{\"status\":\"Nonaktif\"}");
-            Serial.println("✅ Camera OFF (powered down)");
+            Serial.println("Camera OFF (powered down)");
             
             lastCameraTime = millis();
             lastCameraMsg = message;
@@ -482,7 +482,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
             // Hanya update jika kamera sedang aktif dan IP valid
             if (cameraActive) {
                 esp32camIP = receivedIP;
-                Serial.print("📷 ESP32-CAM IP updated: ");
+                Serial.print("ESP32-CAM IP updated: ");
                 Serial.println(esp32camIP);
             }
         }
@@ -492,7 +492,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     // Topic: smartTrain/engine (FUTURE - Kontrol Kecepatan Kereta)
     // ========================================================================
     // COMMENT DULU - Untuk future implementation
-    // Logic: Python detect object + palang tertutup → publish speed command
+    // Logic: Python detect object + palang tertutup > publish speed command
     // ESP32 Controller hanya subscribe untuk display di OLED (optional)
     
     // else if (strcmp(topic, mqtt_topic_engine) == 0) {
@@ -500,7 +500,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     //     // Format: {"speed":"lambat"} atau {"speed":"berhenti"} atau {"speed":"normal"}
     //     
     //     // Optional: Display speed di OLED
-    //     Serial.print("🚂 Train speed command: ");
+    //     Serial.print("Train speed command: ");
     //     Serial.println(message);
     //     
     //     // Atau forward ke ESP32 Kereta via MQTT (jika ada)
@@ -513,11 +513,11 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
 void connectMQTT() {
     while (!mqttClient.connected()) {
-        Serial.print("🔌 Connecting to MQTT...");
+        Serial.print("Connecting to MQTT...");
         String clientId = "ESP32Controller-" + String(random(0xffff), HEX);
         
         if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass)) {
-            Serial.println(" ✅ Connected!");
+            Serial.println("Connected!");
             
             // Subscribe to topics
             mqttClient.subscribe(mqtt_topic_barrier);
@@ -525,7 +525,7 @@ void connectMQTT() {
             mqttClient.subscribe(mqtt_topic_camera_ip);
             // mqttClient.subscribe(mqtt_topic_engine);  // FUTURE
             
-            Serial.println("📡 Subscribed to:");
+            Serial.println("Subscribed to:");
             Serial.print("   - ");
             Serial.println(mqtt_topic_barrier);
             Serial.print("   - ");
@@ -536,7 +536,7 @@ void connectMQTT() {
             // Serial.println(mqtt_topic_engine);  // FUTURE
             
         } else {
-            Serial.print(" ❌ Failed, rc=");
+            Serial.print("Failed, rc=");
             Serial.print(mqttClient.state());
             Serial.println(" (retrying in 5 seconds...)");
             delay(5000);
@@ -549,7 +549,7 @@ void connectMQTT() {
 // ============================================================================
 
 void connectWiFiMulti() {
-    Serial.println("📶 Connecting to WiFi (Multi-Credentials)...");
+    Serial.println("Connecting to WiFi (Multi-Credentials)...");
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     
@@ -571,7 +571,7 @@ void connectWiFiMulti() {
     // If failed, try WiFi 2 (Backup 1)
     // ========================================================================
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("\n⚠️  WiFi 1 failed! Trying WiFi 2...");
+        Serial.println("\nWiFi 1 failed! Trying WiFi 2...");
         WiFi.disconnect();
         delay(1000);
         
@@ -591,7 +591,7 @@ void connectWiFiMulti() {
     // If failed, try WiFi 3 (Backup 2)
     // ========================================================================
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("\n⚠️  WiFi 2 failed! Trying WiFi 3...");
+        Serial.println("\nWiFi 2 failed! Trying WiFi 3...");
         WiFi.disconnect();
         delay(1000);
         
@@ -611,13 +611,13 @@ void connectWiFiMulti() {
     // Check final connection status
     // ========================================================================
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi connected!");
-        Serial.print("📶 SSID: ");
+        Serial.println("\nWiFi connected!");
+        Serial.print("SSID: ");
         Serial.println(WiFi.SSID());
-        Serial.print("📍 IP Address: ");
+        Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
     } else {
-        Serial.println("\n❌ All WiFi failed!");
+        Serial.println("\nAll WiFi failed!");
         Serial.println("   Restarting in 5 seconds...");
         delay(5000);
         ESP.restart();
@@ -633,7 +633,7 @@ void setup() {
     delay(1000);
     
     Serial.println("\n========================================");
-    Serial.println("🚂 SMART TRAIN LEVEL CROSSING SYSTEM");
+    Serial.println("SMART TRAIN LEVEL CROSSING SYSTEM");
     Serial.println("    ESP32 Controller (38-pin)");
     Serial.println("========================================");
 
@@ -646,9 +646,9 @@ void setup() {
     digitalWrite(BUZZER_PIN, LOW);
     digitalWrite(RELAY_CAM_PIN, HIGH);  // Camera OFF saat startup (LOW TRIGGER)
     
-    Serial.println("✅ Pins initialized");
-    Serial.println("✅ Servos in detached mode (power save)");
-    Serial.println("✅ Camera relay OFF (powered down)");
+    Serial.println("Pins initialized");
+    Serial.println("Servos in detached mode (power save)");
+    Serial.println("Camera relay OFF (powered down)");
 
     // ========================================================================
     // WiFi connection - UPDATED: Multi-Credentials
@@ -656,7 +656,7 @@ void setup() {
     connectWiFiMulti();
     
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("❌ WiFi connection failed!");
+        Serial.println("WiFi connection failed!");
         display.clearDisplay();
         display.setCursor(0, 0);
         display.println("WiFi FAILED!");
@@ -675,27 +675,27 @@ void setup() {
     
     connectMQTT();
     
-    Serial.printf("💾 Free heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
     Serial.println("========================================");
-    Serial.println("📋 MQTT Topics:");
+    Serial.println("MQTT Topics:");
     Serial.println("   smartTrain/barrier   - Barrier control");
     Serial.println("   smartTrain/camera    - Camera relay");
     Serial.println("   smartTrain/camera/ip - Camera IP");
     // Serial.println("   smartTrain/engine    - Train speed (FUTURE)");
     Serial.println("========================================");
-    Serial.println("✅ SYSTEM READY!");
+    Serial.println("SYSTEM READY!");
     Serial.println("========================================\n");
     
     // Initial OLED update
     updateOLED();
     
     // Test buzzer
-    Serial.println("🔔 Testing buzzer...");
+    Serial.println("Testing buzzer...");
     soundBuzzer();
-    Serial.println("✅ Buzzer test complete!\n");
+    Serial.println("Buzzer test complete!\n");
 
     // Test Servo
-    // Serial.println("🔧 Testing servo...");
+    // Serial.println("Testing servo...");
     attachServos();        
     barrierServo1.write(BARRIER_DOWN);
     barrierServo2.write(BARRIER_DOWN); // 15ms per 1 step, jalankan kedua servo
@@ -708,20 +708,20 @@ void setup() {
     delay(1000);  // Tunggu gerakan selesai
 
     detachServos();
-    Serial.println("✅ Servo test complete!\n");
+    Serial.println("Servo test complete!\n");
     
     // Nyalakan kamera setelah delay 3 detik
-    Serial.println("⏳ Waiting 3 seconds before starting camera...");
+    Serial.println("Waiting 3 seconds before starting camera...");
     delay(3000);
     
-    Serial.println("📷 Starting camera...");
+    Serial.println("Starting camera...");
     setCameraRelay(true);  // Ini sudah auto publish IP "waiting..." ke MQTT
     
     // Publish status kamera Aktif
     String statusMsg = "{\"status\":\"Aktif\"}";
     mqttClient.publish(mqtt_topic_camera, statusMsg.c_str(), true);
     
-    Serial.println("✅ Camera started! Waiting for IP address...\n");
+    Serial.println("Camera started! Waiting for IP address...\n");
     updateOLED();
 }
 
@@ -732,7 +732,7 @@ void setup() {
 void loop() {
     // Maintain MQTT connection
     if (!mqttClient.connected()) {
-        Serial.println("⚠️  MQTT disconnected! Reconnecting...");
+        Serial.println("MQTT disconnected! Reconnecting...");
         connectMQTT();
     }
     mqttClient.loop();
@@ -781,7 +781,7 @@ void loop() {
  *   ATAU
  *   Adafruit SSD1306 (untuk OLED SSD1306)
  * 
- * Install via: Tools → Manage Libraries
+ * Install via: Tools > Manage Libraries
  * 
  * ============================================================================
  */

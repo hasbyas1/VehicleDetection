@@ -2,10 +2,10 @@
  * ============================================================================
  * SMART TRAIN LEVEL CROSSING SYSTEM - ESP32-CAM MODULE
  * ============================================================================
- * Version: 2.2 Final (Periodic IP Publish)
+ * Version: 6.0.0 Final (Periodic IP Publish)
  * Device: ESP32-CAM AI-Thinker
  * 
- * UPDATE v2.1:
+ * UPDATE v6.0.0:
  * - Publish IP saat pertama connect MQTT
  * - Re-publish IP setiap 10 detik (periodic)
  * - Re-publish IP saat reconnect MQTT
@@ -16,36 +16,36 @@
  * - Untuk object detection via Python (YOLO)
  * 
  * POWER CONTROL:
- * ────────────────────────────────────────────────────────────────────────────
+ * ============================================================================
  * ESP32-CAM powered by Relay (controlled by ESP32 Controller GPIO 27)
- * - Relay ON  → ESP32-CAM gets 5V power → Boot → WiFi → HTTP Server
- * - Relay OFF → ESP32-CAM powered down
- * ────────────────────────────────────────────────────────────────────────────
+ * - Relay ON  > ESP32-CAM gets 5V power > Boot > WiFi > HTTP Server
+ * - Relay OFF > ESP32-CAM powered down
+ * ============================================================================
  * 
  * PIN CONFIGURATION (Fixed AI-Thinker):
- * ────────────────────────────────────────────────────────────────────────────
+ * ============================================================================
  * POWER PINS:
- * 5V   →  Dari Relay NO (Normally Open)
- * GND  →  Common Ground dengan ESP32 Controller
+ * 5V   >  Dari Relay NO (Normally Open)
+ * GND  >  Common Ground dengan ESP32 Controller
  * 
  * CAMERA PINS (Internal, tidak perlu wiring):
- * GPIO 0   →  XCLK
- * GPIO 26  →  SIOD (I2C Data)
- * GPIO 27  →  SIOC (I2C Clock)
- * GPIO 35  →  Y9 (MSB)
- * GPIO 34  →  Y8
- * GPIO 39  →  Y7
- * GPIO 36  →  Y6
- * GPIO 21  →  Y5
- * GPIO 19  →  Y4
- * GPIO 18  →  Y3
- * GPIO 5   →  Y2 (LSB)
- * GPIO 25  →  VSYNC
- * GPIO 23  →  HREF
- * GPIO 22  →  PCLK
- * GPIO 32  →  PWDN (Power Down)
- * GPIO -1  →  RESET (not used)
- * ────────────────────────────────────────────────────────────────────────────
+ * GPIO 0   >  XCLK
+ * GPIO 26  >  SIOD (I2C Data)
+ * GPIO 27  >  SIOC (I2C Clock)
+ * GPIO 35  >  Y9 (MSB)
+ * GPIO 34  >  Y8
+ * GPIO 39  >  Y7
+ * GPIO 36  >  Y6
+ * GPIO 21  >  Y5
+ * GPIO 19  >  Y4
+ * GPIO 18  >  Y3
+ * GPIO 5   >  Y2 (LSB)
+ * GPIO 25  >  VSYNC
+ * GPIO 23  >  HREF
+ * GPIO 22  >  PCLK
+ * GPIO 32  >  PWDN (Power Down)
+ * GPIO -1  >  RESET (not used)
+ * ============================================================================
  * 
  * MQTT TOPIC:
  * - smartTrain/camera/ip (PUBLISH only)
@@ -53,10 +53,10 @@
  *   Publish: Saat boot + setiap 30 detik
  * 
  * HTTP ENDPOINTS:
- * - GET /         → Homepage
- * - GET /stream   → MJPEG video stream (untuk Python YOLO)
- * - GET /capture  → Single JPEG snapshot
- * - GET /status   → JSON status
+ * - GET /         > Homepage
+ * - GET /stream   > MJPEG video stream (untuk Python YOLO)
+ * - GET /capture  > Single JPEG snapshot
+ * - GET /status   > JSON status
  * 
  * CAMERA CONFIG:
  * - Frame size: QVGA (320x240) - optimal untuk YOLO
@@ -182,12 +182,12 @@ void publishIP() {
         String ipMessage = "{\"ip\":\"" + WiFi.localIP().toString() + "\"}";
         
         if (mqttClient.publish(mqtt_topic_camera_ip, ipMessage.c_str())) {
-            Serial.println("📡 IP published to smartTrain/camera/ip");
+            Serial.println("IP published to smartTrain/camera/ip");
             Serial.print("   IP: ");
             Serial.println(WiFi.localIP());
             lastIPPublish = millis();
         } else {
-            Serial.println("⚠️  IP publish failed!");
+            Serial.println("IP publish failed!");
         }
     }
 }
@@ -211,7 +211,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
     while (true) {
         fb = esp_camera_fb_get();
         if (!fb) {
-            Serial.println("❌ Camera capture failed");
+            Serial.println("Camera capture failed");
             res = ESP_FAIL;
             break;
         }
@@ -221,7 +221,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
             esp_camera_fb_return(fb);
             fb = NULL;
             if (!jpeg_converted) {
-                Serial.println("❌ JPEG conversion failed");
+                Serial.println("JPEG conversion failed");
                 res = ESP_FAIL;
                 break;
             }
@@ -263,7 +263,7 @@ static esp_err_t stream_handler(httpd_req_t *req) {
 static esp_err_t capture_handler(httpd_req_t *req) {
     camera_fb_t * fb = esp_camera_fb_get();
     if (!fb) {
-        Serial.println("❌ Camera capture failed");
+        Serial.println("Camera capture failed");
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
@@ -366,7 +366,7 @@ void startCameraServer() {
     config.max_open_sockets = 3;
 
     if (httpd_start(&stream_httpd, &config) != ESP_OK) {
-        Serial.println("❌ Failed to start HTTP server");
+        Serial.println("Failed to start HTTP server");
         return;
     }
 
@@ -381,7 +381,7 @@ void startCameraServer() {
         httpd_register_uri_handler(stream_httpd, &uris[i]);
     }
     
-    Serial.println("✅ HTTP server started");
+    Serial.println("HTTP server started");
 }
 
 // ============================================================================
@@ -391,11 +391,11 @@ void startCameraServer() {
 void connectMQTT() {
     int retry = 0;
     while (!mqttClient.connected() && retry < 5) {
-        Serial.print("🔌 Connecting to MQTT...");
+        Serial.print("Connecting to MQTT...");
         String clientId = "ESP32CAM-" + String(random(0xffff), HEX);
         
         if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_pass)) {
-            Serial.println(" ✅ Connected!");
+            Serial.println("Connected!");
             
             // Publish IP address immediately after connect
             publishIP();
@@ -403,7 +403,7 @@ void connectMQTT() {
             break;
             
         } else {
-            Serial.print(" ❌ Failed, rc=");
+            Serial.print("Failed, rc=");
             Serial.print(mqttClient.state());
             Serial.println(" (retrying...)");
             delay(2000);
@@ -412,7 +412,7 @@ void connectMQTT() {
     }
     
     if (!mqttClient.connected()) {
-        Serial.println("⚠️  MQTT connection failed after 5 retries");
+        Serial.println("MQTT connection failed after 5 retries");
         Serial.println("   Continuing with HTTP server only...");
     }
 }
@@ -422,7 +422,7 @@ void connectMQTT() {
 // ============================================================================
 
 void connectWiFiMulti() {
-    Serial.println("📶 Connecting to WiFi (Multi-Credentials)...");
+    Serial.println("Connecting to WiFi (Multi-Credentials)...");
     WiFi.mode(WIFI_STA);
     WiFi.setSleep(false);
     
@@ -444,7 +444,7 @@ void connectWiFiMulti() {
     // If failed, try WiFi 2 (Backup 1)
     // ========================================================================
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("\n⚠️  WiFi 1 failed! Trying WiFi 2...");
+        Serial.println("\nWiFi 1 failed! Trying WiFi 2...");
         WiFi.disconnect();
         delay(1000);
         
@@ -464,7 +464,7 @@ void connectWiFiMulti() {
     // If failed, try WiFi 3 (Backup 2)
     // ========================================================================
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("\n⚠️  WiFi 2 failed! Trying WiFi 3...");
+        Serial.println("\nWiFi 2 failed! Trying WiFi 3...");
         WiFi.disconnect();
         delay(1000);
         
@@ -484,13 +484,13 @@ void connectWiFiMulti() {
     // Check final connection status
     // ========================================================================
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi connected!");
-        Serial.print("📶 SSID: ");
+        Serial.println("\nWiFi connected!");
+        Serial.print("SSID: ");
         Serial.println(WiFi.SSID());
-        Serial.print("📍 IP Address: ");
+        Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
     } else {
-        Serial.println("\n❌ All WiFi failed!");
+        Serial.println("\nAll WiFi failed!");
         Serial.println("   Restarting in 5 seconds...");
         delay(5000);
         ESP.restart();
@@ -506,7 +506,7 @@ void setup() {
     delay(1000);
     
     Serial.println("\n========================================");
-    Serial.println("📷 SMART TRAIN ESP32-CAM MODULE");
+    Serial.println("SMART TRAIN ESP32-CAM MODULE");
     Serial.println("    HTTP Server + MQTT IP Publisher");
     Serial.println("    v2.1 (Periodic IP Publish)");
     Serial.println("========================================");
@@ -542,13 +542,13 @@ void setup() {
     // Initialize camera
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
-        Serial.printf("❌ Camera init failed: 0x%x\n", err);
+        Serial.printf("Camera init failed: 0x%x\n", err);
         Serial.println("   Restarting in 3 seconds...");
         delay(3000);
         ESP.restart();
         return;
     }
-    Serial.println("✅ Camera initialized");
+    Serial.println("Camera initialized");
     Serial.println("   Frame size: QVGA (320x240)");
     Serial.println("   JPEG quality: 12");
 
@@ -558,7 +558,7 @@ void setup() {
     connectWiFiMulti();
     
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("❌ WiFi connection failed!");
+        Serial.println("WiFi connection failed!");
         Serial.println("   Restarting in 3 seconds...");
         delay(3000);
         ESP.restart();
@@ -577,13 +577,13 @@ void setup() {
     // Connect to MQTT and publish IP
     connectMQTT();
 
-    Serial.printf("💾 Free heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
     Serial.println("========================================");
-    Serial.println("📋 Features:");
-    Serial.println("   ✅ HTTP Server (stream, capture, status)");
-    Serial.println("   ✅ MQTT IP Publish (every 30 seconds)");
+    Serial.println("Features:");
+    Serial.println("   HTTP Server (stream, capture, status)");
+    Serial.println("   MQTT IP Publish (every 30 seconds)");
     Serial.println("========================================");
-    Serial.println("📋 HTTP Endpoints:");
+    Serial.println("HTTP Endpoints:");
     Serial.print("   http://");
     Serial.print(WiFi.localIP());
     Serial.println("/         - Homepage");
@@ -597,7 +597,7 @@ void setup() {
     Serial.print(WiFi.localIP());
     Serial.println("/status   - JSON status");
     Serial.println("========================================");
-    Serial.println("✅ SYSTEM READY!");
+    Serial.println("SYSTEM READY!");
     Serial.println("========================================\n");
 }
 
@@ -608,7 +608,7 @@ void setup() {
 void loop() {
     // Maintain MQTT connection
     if (!mqttClient.connected()) {
-        Serial.println("⚠️  MQTT disconnected! Reconnecting...");
+        Serial.println("MQTT disconnected! Reconnecting...");
         connectMQTT();
     }
     mqttClient.loop();
@@ -617,7 +617,7 @@ void loop() {
     // PERIODIC IP PUBLISH - Every 30 seconds
     // ========================================================================
     if (millis() - lastIPPublish >= IP_PUBLISH_INTERVAL) {
-        Serial.println("🔄 Periodic IP publish...");
+        Serial.println("Periodic IP publish...");
         publishIP();
     }
     
@@ -626,13 +626,13 @@ void loop() {
 
 /*
  * ============================================================================
- * UPDATE NOTES v2.1
+ * UPDATE NOTES v6.0.0 - PERIODIC IP PUBLISH VIA MQTT
  * ============================================================================
  * 
  * PERUBAHAN:
- * 1. ✅ IP publish saat pertama connect MQTT (existing)
- * 2. ✅ IP re-publish SETIAP 30 DETIK secara otomatis (NEW!)
- * 3. ✅ IP re-publish saat MQTT reconnect (existing)
+ * 1. IP publish saat pertama connect MQTT (existing)
+ * 2. IP re-publish SETIAP 30 DETIK secara otomatis (NEW!)
+ * 3. IP re-publish saat MQTT reconnect (existing)
  * 
  * KEUNTUNGAN:
  * - ESP32 Controller yang boot lambat tetap dapat IP
@@ -643,39 +643,39 @@ void loop() {
  * INTERVAL:
  * - Default: 30 detik
  * - Ubah di: const unsigned long IP_PUBLISH_INTERVAL = 30000;
- * - Rekomendasi: 30-60 detik (jangan terlalu cepat → spam MQTT)
+ * - Rekomendasi: 30-60 detik (jangan terlalu cepat > spam MQTT)
  * 
  * ============================================================================
  * SERIAL MONITOR OUTPUT EXAMPLE:
  * ============================================================================
  * 
  * ========================================
- * 📷 SMART TRAIN ESP32-CAM MODULE
+ * SMART TRAIN ESP32-CAM MODULE
  *     HTTP Server + MQTT IP Publisher
- *     v2.1 (Periodic IP Publish)
+ *     v6.0.0 (Periodic IP Publish)
  * ========================================
- * ✅ Camera initialized
- * 📶 Connecting to WiFi......
- * ✅ WiFi connected!
- * 📍 IP Address: 192.168.1.100
- * ✅ HTTP server started
- * 🔌 Connecting to MQTT... ✅ Connected!
- * 📡 IP published to smartTrain/camera/ip
+ * Camera initialized
+ * Connecting to WiFi......
+ * WiFi connected!
+ * IP Address: 192.168.1.100
+ * HTTP server started
+ * Connecting to MQTT... Connected!
+ * IP published to smartTrain/camera/ip
  *    IP: 192.168.1.100
  * ========================================
- * ✅ SYSTEM READY!
+ * SYSTEM READY!
  * ========================================
  * 
  * (tunggu 30 detik...)
  * 
- * 🔄 Periodic IP publish...
- * 📡 IP published to smartTrain/camera/ip
+ * Periodic IP publish...
+ * IP published to smartTrain/camera/ip
  *    IP: 192.168.1.100
  * 
  * (tunggu 30 detik lagi...)
  * 
- * 🔄 Periodic IP publish...
- * 📡 IP published to smartTrain/camera/ip
+ * Periodic IP publish...
+ * IP published to smartTrain/camera/ip
  *    IP: 192.168.1.100
  * 
  * ... (repeat every 30 seconds)
@@ -701,25 +701,25 @@ void loop() {
  * ============================================================================
  * 
  * 1. IP tidak publish?
- *    → Check MQTT connected: mqttClient.connected()
- *    → Check Serial Monitor: "IP published to smartTrain/camera/ip"
+ *    > Check MQTT connected: mqttClient.connected()
+ *    > Check Serial Monitor: "IP published to smartTrain/camera/ip"
  * 
  * 2. IP publish terlalu sering?
- *    → Ubah IP_PUBLISH_INTERVAL ke 60000 (60 detik)
+ *    > Ubah IP_PUBLISH_INTERVAL ke 60000 (60 detik)
  * 
  * 3. ESP32 Controller OLED tidak update?
- *    → Check ESP32 Controller subscribe "smartTrain/camera/ip"
- *    → Check MQTT connection di kedua device
+ *    > Check ESP32 Controller subscribe "smartTrain/camera/ip"
+ *    > Check MQTT connection di kedua device
  * 
  * 4. MQTT spam warning?
- *    → 30 detik sudah optimal, jangan kurangi interval
+ *    > 30 detik sudah optimal, jangan kurangi interval
  * 
  * ============================================================================
  * LIBRARIES REQUIRED:
  * ============================================================================
  * - PubSubClient (by Nick O'Leary)
  * 
- * Install via: Tools → Manage Libraries
+ * Install via: Tools > Manage Libraries
  * 
  * ============================================================================
  */

@@ -2,10 +2,10 @@
  * ============================================================================
  * SMART TRAIN LEVEL CROSSING SYSTEM - ESP32-CAM MODULE (WebSocket Version)
  * ============================================================================
- * Version: 3.0 WebSocket
+ * Version: 7.1.1 WebSocket
  * Device: ESP32-CAM AI-Thinker
  * 
- * UPDATE v3.0:
+ * UPDATE v7.1.1:
  * - WebSocket server untuk real-time frame streaming
  * - Latency ultra-low (~50-100ms vs HTTP ~200-500ms)
  * - Two-way communication support
@@ -19,23 +19,23 @@
  * - Untuk object detection via Python (YOLO)
  * 
  * WEBSOCKET PROTOCOL:
- * ────────────────────────────────────────────────────────────────────────────
- * Client → Server:
- * - "GET_FRAME"    → Request single frame
- * - "START_STREAM" → Start continuous streaming
- * - "STOP_STREAM"  → Stop streaming
- * - "GET_STATUS"   → Get camera status
+ * ============================================================================
+ * Client > Server:
+ * - "GET_FRAME"    > Request single frame
+ * - "START_STREAM" > Start continuous streaming
+ * - "STOP_STREAM"  > Stop streaming
+ * - "GET_STATUS"   > Get camera status
  * 
- * Server → Client:
- * - Binary data    → JPEG frame
- * - JSON status    → Camera information
- * ────────────────────────────────────────────────────────────────────────────
+ * Server > Client:
+ * - Binary data    > JPEG frame
+ * - JSON status    > Camera information
+ * ============================================================================
  * 
  * LIBRARIES REQUIRED:
  * - PubSubClient (by Nick O'Leary)
  * - arduinoWebSockets (by Markus Sattler)
  * 
- * Install via: Tools → Manage Libraries
+ * Install via: Tools > Manage Libraries
  * ============================================================================
  */
 
@@ -155,7 +155,7 @@ emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=
 // WIFI CONNECTION (Multi-Credentials) - FIXED VERSION
 // ============================================================================
 void connectWiFiMulti() {
-    Serial.println("📶 Connecting to WiFi...");
+    Serial.println("Connecting to WiFi...");
     
     // Set WiFi mode
     WiFi.mode(WIFI_STA);
@@ -175,16 +175,16 @@ void connectWiFiMulti() {
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi connected!");
-        Serial.print("📍 SSID: ");
+        Serial.println("\nWiFi connected!");
+        Serial.print("SSID: ");
         Serial.println(WiFi.SSID());
-        Serial.print("📍 IP Address: ");
+        Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
         return;
     }
     
     // Disconnect and try backup1
-    Serial.println("\n⚠️  Primary WiFi failed, trying backup1...");
+    Serial.println("\nPrimary WiFi failed, trying backup1...");
     WiFi.disconnect(true);  // IMPORTANT: Disconnect before retry!
     delay(1000);
     
@@ -200,16 +200,16 @@ void connectWiFiMulti() {
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi connected (backup1)!");
-        Serial.print("📍 SSID: ");
+        Serial.println("\nWiFi connected (backup1)!");
+        Serial.print("SSID: ");
         Serial.println(WiFi.SSID());
-        Serial.print("📍 IP Address: ");
+        Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
         return;
     }
     
     // Disconnect and try backup2
-    Serial.println("\n⚠️  Backup1 WiFi failed, trying backup2...");
+    Serial.println("\nBackup1 WiFi failed, trying backup2...");
     WiFi.disconnect(true);  // IMPORTANT: Disconnect before retry!
     delay(1000);
     
@@ -225,13 +225,13 @@ void connectWiFiMulti() {
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("\n✅ WiFi connected (backup2)!");
-        Serial.print("📍 SSID: ");
+        Serial.println("\nWiFi connected (backup2)!");
+        Serial.print("SSID: ");
         Serial.println(WiFi.SSID());
-        Serial.print("📍 IP Address: ");
+        Serial.print("IP Address: ");
         Serial.println(WiFi.localIP());
     } else {
-        Serial.println("\n❌ All WiFi attempts failed!");
+        Serial.println("\nAll WiFi attempts failed!");
     }
 }
 
@@ -240,13 +240,13 @@ void connectWiFiMulti() {
 // ============================================================================
 void connectMQTT() {
     while (!mqttClient.connected()) {
-        Serial.print("🔌 Connecting to MQTT... ");
+        Serial.print("Connecting to MQTT... ");
         
         if (mqttClient.connect("ESP32-CAM-WebSocket", mqtt_user, mqtt_pass)) {
-            Serial.println("✅ Connected!");
+            Serial.println("Connected!");
             publishIP();  // Publish IP on connect
         } else {
-            Serial.print("❌ Failed, rc=");
+            Serial.print("Failed, rc=");
             Serial.print(mqttClient.state());
             Serial.println(" retrying in 5s...");
             delay(5000);
@@ -259,12 +259,12 @@ void publishIP() {
         String ipMessage = "{\"ip\":\"" + WiFi.localIP().toString() + "\"}";
         
         if (mqttClient.publish(mqtt_topic_camera_ip, ipMessage.c_str())) {
-            Serial.println("📡 IP published to smartTrain/camera/ip");
+            Serial.println("IP published to smartTrain/camera/ip");
             Serial.print("   IP: ");
             Serial.println(WiFi.localIP());
             lastIPPublish = millis();
         } else {
-            Serial.println("⚠️  IP publish failed!");
+            Serial.println("IP publish failed!");
         }
     }
 }
@@ -275,7 +275,7 @@ void publishIP() {
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED:
-            Serial.printf("🔌 Client #%u disconnected\n", num);
+            Serial.printf("Client #%u disconnected\n", num);
             if (num == streamingClient) {
                 isStreaming = false;
                 streamingClient = 255;
@@ -284,18 +284,18 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
             
         case WStype_CONNECTED: {
             IPAddress ip = webSocket.remoteIP(num);
-            Serial.printf("✅ Client #%u connected from %d.%d.%d.%d\n", 
+            Serial.printf("Client #%u connected from %d.%d.%d.%d\n", 
                          num, ip[0], ip[1], ip[2], ip[3]);
             
             // Send welcome message
-            String welcomeMsg = "{\"status\":\"connected\",\"version\":\"3.0\"}";
+            String welcomeMsg = "{\"status\":\"connected\",\"version\":\"7.1.1\"}";
             webSocket.sendTXT(num, welcomeMsg);
             break;
         }
             
         case WStype_TEXT: {
             String message = String((char*)payload);
-            Serial.printf("📨 Message from #%u: %s\n", num, message.c_str());
+            Serial.printf("Message from #%u: %s\n", num, message.c_str());
             
             if (message == "GET_FRAME") {
                 // Send single frame
@@ -305,14 +305,14 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 // Start continuous streaming
                 isStreaming = true;
                 streamingClient = num;
-                Serial.printf("▶️  Streaming started for client #%u\n", num);
+                Serial.printf("Streaming started for client #%u\n", num);
             }
             else if (message == "STOP_STREAM") {
                 // Stop streaming
                 if (num == streamingClient) {
                     isStreaming = false;
                     streamingClient = 255;
-                    Serial.printf("⏸️  Streaming stopped for client #%u\n", num);
+                    Serial.printf("Streaming stopped for client #%u\n", num);
                 }
             }
             else if (message == "GET_STATUS") {
@@ -324,7 +324,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
             
         case WStype_BIN:
             // Binary data received (not used in this application)
-            Serial.printf("📦 Binary data from #%u, length: %u\n", num, length);
+            Serial.printf("Binary data from #%u, length: %u\n", num, length);
             break;
     }
 }
@@ -336,7 +336,7 @@ void sendFrame(uint8_t clientNum) {
     camera_fb_t * fb = esp_camera_fb_get();
     
     if (!fb) {
-        Serial.println("❌ Camera capture failed");
+        Serial.println("Camera capture failed");
         return;
     }
     
@@ -460,7 +460,7 @@ void startCameraServer() {
         httpd_register_uri_handler(stream_httpd, &index_uri);
         httpd_register_uri_handler(stream_httpd, &capture_uri);
         httpd_register_uri_handler(stream_httpd, &status_uri);
-        Serial.println("✅ HTTP server started");
+        Serial.println("HTTP server started");
     }
 }
 
@@ -470,9 +470,9 @@ void startCameraServer() {
 void setup() {
     Serial.begin(115200);
     Serial.println("\n========================================");
-    Serial.println("📷 SMART TRAIN ESP32-CAM MODULE");
+    Serial.println("SMART TRAIN ESP32-CAM MODULE");
     Serial.println("    WebSocket Real-time Streaming");
-    Serial.println("    v3.0 WebSocket");
+    Serial.println("    v7.1.1 WebSocket");
     Serial.println("========================================");
 
     // Camera configuration
@@ -504,19 +504,19 @@ void setup() {
     // Initialize camera
     esp_err_t err = esp_camera_init(&config);
     if (err != ESP_OK) {
-        Serial.printf("❌ Camera init failed: 0x%x\n", err);
+        Serial.printf("Camera init failed: 0x%x\n", err);
         delay(3000);
         ESP.restart();
         return;
     }
-    Serial.println("✅ Camera initialized");
+    Serial.println("Camera initialized");
     Serial.println("   Frame size: QVGA (320x240)");
 
     // WiFi connection
     connectWiFiMulti();
     
     if (WiFi.status() != WL_CONNECTED) {
-        Serial.println("❌ WiFi connection failed!");
+        Serial.println("WiFi connection failed!");
         delay(3000);
         ESP.restart();
         return;
@@ -534,19 +534,19 @@ void setup() {
     // Start WebSocket server
     webSocket.begin();
     webSocket.onEvent(webSocketEvent);
-    Serial.printf("✅ WebSocket server started on port %d\n", WS_PORT);
+    Serial.printf("WebSocket server started on port %d\n", WS_PORT);
 
-    Serial.printf("💾 Free heap: %d bytes\n", ESP.getFreeHeap());
+    Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
     Serial.println("========================================");
-    Serial.println("📋 WebSocket Endpoint:");
+    Serial.println("WebSocket Endpoint:");
     Serial.printf("   ws://%s:%d\n", WiFi.localIP().toString().c_str(), WS_PORT);
     Serial.println("========================================");
-    Serial.println("📋 HTTP Endpoints (Backup):");
+    Serial.println("HTTP Endpoints (Backup):");
     Serial.printf("   http://%s/         - Homepage\n", WiFi.localIP().toString().c_str());
     Serial.printf("   http://%s/capture  - Snapshot\n", WiFi.localIP().toString().c_str());
     Serial.printf("   http://%s/status   - Status\n", WiFi.localIP().toString().c_str());
     Serial.println("========================================");
-    Serial.println("✅ SYSTEM READY!");
+    Serial.println("SYSTEM READY!");
     Serial.println("========================================\n");
 }
 
